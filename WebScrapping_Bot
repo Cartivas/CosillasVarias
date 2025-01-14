@@ -1,0 +1,81 @@
+# Instalar la biblioteca Beautiful Soup 4 (bs4) necesaria para análisis de HTML
+# py -m pip install bs4
+
+# Instalar la biblioteca Schedule para programar tareas
+# py -m pip install schedule
+
+# Importar las bibliotecas necesarias
+import os  # Para ejecutar comandos del sistema, como 'ping'
+import datetime  # Para trabajar con fechas y horas
+import requests  # Para realizar solicitudes HTTP
+import schedule  # Para programar tareas
+import time  # Para pausas y gestión del tiempo
+
+# Configuración del bot de Telegram
+BOT_TOKEN = 'BOT_TOKEN'  # Token único del bot
+CHAT_ID = 'CHAT_ID'  # ID del chat al que se enviarán los mensajes
+
+# Función para enviar mensajes al chat de Telegram
+def bot_send_text(bot_message):
+    # Construir la URL de la API de Telegram con el token y el mensaje
+    send_text = f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage?chat_id={CHAT_ID}&parse_mode=Markdown&text={bot_message}'
+    # Realizar una solicitud GET a la API
+    response = requests.get(send_text)
+    return response
+
+# Función principal para verificar el estado de los hosts
+def ping_hosts(input_file, output_file):
+    # Leer la lista de hosts desde un archivo de texto
+    with open(input_file, "r") as file:
+        hosts = file.read().splitlines()  # Cada línea representa un host
+    
+    # Obtener la fecha y hora actual para el reporte
+    ahora = datetime.datetime.now()
+    fecha_formateada = ahora.strftime("%Y-%m-%d %H:%M:%S")
+
+    # Crear un encabezado para el reporte
+    report = [f"Análisis ejecutado: {fecha_formateada}", "-" * 40]
+
+    # Abrir archivo de salida para guardar los resultados
+    with open(output_file, "w") as f_out:
+        f_out.write(f"Análisis ejecutado: {fecha_formateada}\n")
+        f_out.write("-" * 40 + "\n")
+
+        # Iterar sobre cada host y verificar su estado
+        for host in hosts:
+            # Ejecutar el comando `ping` en el sistema operativo
+            response = os.popen(f"ping -n 1 {host}").read()
+
+            # Determinar si el host está "up" o "down" según la respuesta
+            if "Request timed out" in response or "unreachable" in response:
+                estado = f"{host} --> El host está *down*"  # Host no responde
+            else:
+                estado = f"{host} --> El host está *up*"  # Host responde
+
+            # Guardar el resultado en el archivo y en el reporte
+            f_out.write(estado + "\n")
+            report.append(estado)
+
+        # Finalizar el archivo con una línea divisoria
+        f_out.write("-" * 40 + "\n")
+    
+    # Enviar el reporte completo al chat de Telegram
+    report_message = "\n".join(report)
+    bot_send_text(report_message)
+
+# Función para programar el monitoreo periódico
+def schedule_monitoring():
+    # Configurar la tarea para ejecutarse cada 5 minutos
+    schedule.every(5).minutes.do(lambda: ping_hosts("ip_list.txt", "ip_output.txt"))
+
+    # Bucle infinito para ejecutar las tareas programadas
+    while True:
+        schedule.run_pending()  # Ejecutar las tareas pendientes
+        time.sleep(1)  # Pausa breve para evitar alta carga de CPU
+
+# Punto de entrada del script
+if __name__ == "__main__":
+    # Iniciar el monitoreo programado
+    schedule_monitoring()
+
+© 2025 - Alexandro Cartivas. Todos los derechos reservados.

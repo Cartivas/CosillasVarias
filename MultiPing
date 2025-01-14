@@ -1,69 +1,4 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Script de Python</title>
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f3f4f6;
-            color: #333;
-            margin: 0;
-            padding: 0;
-        }
-        header {
-            background-color: #4CAF50;
-            color: white;
-            padding: 15px 20px;
-            text-align: center;
-        }
-        main {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        h1 {
-            color: #4CAF50;
-            font-size: 2em;
-            margin: 20px 0;
-        }
-        pre {
-            background-color: #272822;
-            color: #f8f8f2;
-            padding: 20px;
-            border-radius: 8px;
-            font-size: 1em;
-            line-height: 1.5;
-            overflow-x: auto;
-            max-width: 90%;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-            white-space: pre-wrap; /* Permite el salto de línea dentro de la caja */
-        }
-        code {
-            font-family: 'Courier New', monospace;
-        }
-        footer {
-            background-color: #333;
-            color: white;
-            text-align: center;
-            padding: 10px 0;
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            font-size: 0.9em;
-        }
-    </style>
-</head>
-<body>
-    <header>
-        <h1>Script de Python</h1>
-    </header>
-    <main>
-        <h1>Script Completo: Multi Ping</h1>
-        <pre><code>import os  # Módulo para interactuar con el sistema operativo y ejecutar comandos.
+import os  # Módulo para interactuar con el sistema operativo y ejecutar comandos.
 import datetime  # Módulo para manejar fechas y horas.
 
 # Función principal que realiza el análisis de hosts
@@ -104,10 +39,5 @@ def ping_hosts(input_file, output_file):
 
 # Llamada a la función principal con los nombres de los archivos
 ping_hosts("ip_list.txt", "ip_output.txt")
-        </code></pre>
-    </main>
-    <footer>
-        © 2025 - Alejandro Burgos Pereira. Todos los derechos reservados.
-    </footer>
-</body>
-</html>
+
+© 2025 - Alejandro Burgos Pereira. Todos los derechos reservados.

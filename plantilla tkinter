@@ -1,0 +1,42 @@
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Image
+import os
+
+def crear_pdf(nombre_archivo):
+    # Crear el lienzo del PDF
+    c = canvas.Canvas(nombre_archivo, pagesize=letter)
+    ancho, alto = letter
+    
+    margen = 50  # Espacio en blanco al inicio y al final de la línea
+    
+    # Encabezado
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(100, alto - 50, "Encabezado del Documento")
+    c.line(margen, alto - 60, ancho - margen, alto - 60)  # Línea debajo del encabezado con márgenes
+    
+    # Texto principal
+    c.setFont("Helvetica", 12)
+    texto = "Este es un ejemplo de contenido para el PDF generado en Python utilizando ReportLab."
+    c.drawString(100, alto - 100, texto)
+    
+    # Agregar imagen
+    ruta_imagen = "imagen.jpg"  # Asegúrate de cambiar esto por la ruta real de tu imagen
+    c.drawImage(ruta_imagen, 100, alto - 300, width=200, height=150)
+    
+    # Línea encima del pie de página con márgenes
+    c.line(margen, 60, ancho - margen, 60)
+    
+    # Pie de página
+    c.setFont("Helvetica-Oblique", 10)
+    c.drawString(100, 50, "Pie de página - Página 1")
+    
+    # Guardar el PDF
+    c.save()
+    print(f"PDF '{nombre_archivo}' creado con éxito.")
+    
+    # Abrir automáticamente el PDF
+    os.system(f"start {nombre_archivo}")
+
+# Llamar a la función para crear el PDF
+crear_pdf("documento.pdf")

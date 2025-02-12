@@ -1,0 +1,144 @@
+from tkinter import *
+from tkinter import ttk
+import mysql.connector
+from mysql.connector import Error
+import pandas as pd
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+import os
+
+# Diccionario de consultas SQL
+CONSULTAS = {
+    1: "Pacientes vivos (Nombre y edad) que superan la media de edad de los fallecidos por coronavirus",
+    2: "Pacientes que se les ha diagnosticado la enfermedad del coronavirus el mismo día que se le han hecho las pruebas",
+    3: "Número y media de edad de los pacientes con coronavirus por comunidad autónoma",
+    4: "Nombre del paciente, la edad, la ciudad y la comunidad donde vivía el paciente más joven fallecido por coronavirus",
+    5: "Pacientes que teniendo el coronavirus han tenido otra enfermedad adicional previa mostrando el nombre del paciente y el número de enfermedades previas que ha tenido",
+    6: "Pacientes que han contraído más de 2 enfermedades"
+}
+
+# Diccionario de consultas SQL asociadas
+CONSULTAS_SQL = {
+    1: "SELECT p.Nombre, p.edad FROM paciente p JOIN enferpac e ON p.Id = e.idpaciente WHERE e.vivo = 'si' AND e.idenfermedad = 3 AND p.edad > (SELECT AVG(p2.edad) FROM paciente p2 JOIN enferpac e2 ON p2.Id = e2.idpaciente WHERE e2.vivo = 'no' AND e2.idenfermedad = 3);",
+    2: "SELECT p.Nombre, e.fecha_pruebas, e.fecha_diagnostico FROM paciente p JOIN enferpac e ON p.Id = e.idpaciente WHERE e.idenfermedad = 3 AND e.fecha_pruebas = e.fecha_diagnostico;",
+    3: "SELECT c.nombre AS comunidad, COUNT(*) AS num_pacientes, AVG(p.edad) AS media_edad FROM comunidad c JOIN ciudad ci ON c.id = ci.idcomunidad JOIN paciente p ON p.idciudad = ci.id JOIN enferpac e ON p.Id = e.idpaciente WHERE e.idenfermedad = 3 GROUP BY c.id;",
+    4: "SELECT p.Nombre, p.edad, ci.Nombre AS ciudad, c.nombre AS comunidad FROM paciente p JOIN enferpac e ON p.Id = e.idpaciente JOIN ciudad ci ON p.idciudad = ci.id JOIN comunidad c ON ci.idcomunidad = c.id WHERE e.idenfermedad = 3 AND e.vivo = 'no' ORDER BY p.edad ASC LIMIT 1;",
+    5: "SELECT p.Nombre, COUNT(e2.idenfermedad) AS num_enfermedades_previas FROM paciente p JOIN enferpac e1 ON p.Id = e1.idpaciente JOIN enferpac e2 ON p.Id = e2.idpaciente AND e2.idenfermedad != e1.idenfermedad WHERE e1.idenfermedad = 3 GROUP BY p.Id;",
+    6: "SELECT p.Nombre FROM paciente p JOIN enferpac e ON p.Id = e.idpaciente GROUP BY p.Id HAVING COUNT(DISTINCT e.idenfermedad) > 2;"
+}
+
+# Función para conectar a la base de datos
+def conectar_mysql(host='localhost', port=3306, user='root', password='alex', database='coronavirus'):
+    try:
+        conexion = mysql.connector.connect(
+            host=host,
+            port=port,
+            user=user,
+            password=password,
+            database=database
+        )
+        if conexion.is_connected():
+            return conexion
+    except Error as e:
+        print(f"Error de conexión: {e}")
+        return None
+
+# Función para ejecutar una consulta específica
+def ejecutar_consulta(consulta_sql):
+    conexion = conectar_mysql()
+    if conexion is None:
+        return None
+
+    try:
+        cursor = conexion.cursor()
+        cursor.execute(consulta_sql)
+        resultados = cursor.fetchall()
+        columnas = [desc[0] for desc in cursor.description]
+        df = pd.DataFrame(resultados, columns=columnas)
+        return df
+    except Error as e:
+        print(f"Error al ejecutar la consulta: {e}")
+        return None
+    finally:
+        cursor.close()
+        conexion.close()
+
+# Función para ejecutar todas las consultas y guardar en PDF
+def ejecutar_todas_consultas():
+    resultados_totales = {}
+    
+    for clave, consulta in CONSULTAS_SQL.items():
+        df = ejecutar_consulta(consulta)
+        if df is not None:
+            resultados_totales[CONSULTAS[clave]] = df
+
+    generar_pdf(resultados_totales)
+
+# Función para generar el PDF con los resultados
+def generar_pdf(datos):
+    nombre_archivo = "resultado_consultas.pdf"
+    c = canvas.Canvas(nombre_archivo, pagesize=letter)
+    ancho, alto = letter
+
+    margen = 50
+    y_pos = alto - 50
+    
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(margen, y_pos, "Resultados de las Consultas")
+    y_pos -= 20
+    c.line(margen, y_pos, ancho - margen, y_pos)
+    y_pos -= 30
+
+    c.setFont("Helvetica", 12)
+
+    for titulo, df in datos.items():
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(margen, y_pos, titulo)
+        y_pos -= 20
+
+        c.setFont("Helvetica", 10)
+        columnas = df.columns.tolist()
+        for _, row in df.iterrows():
+            texto_fila = " | ".join([str(row[col]) for col in columnas])
+            c.drawString(margen, y_pos, texto_fila)
+            y_pos -= 15
+
+            if y_pos < 60:  # Salto de página
+                c.showPage()
+                y_pos = alto - 50
+
+        y_pos -= 20  # Espacio entre consultas
+    
+    c.save()
+    print(f"PDF '{nombre_archivo}' creado con éxito.")
+    os.system(f"start {nombre_archivo}")
+
+# Configuración de la ventana principal
+window = Tk()
+window.title("Menú de Consultas")
+window.geometry("560x144")
+
+# Etiqueta de título
+Label(window, text="Pulse el botón para ejecutar todas las consultas:", font=("Arial", 16)).pack(pady=10)
+
+# Frame para los botones
+frame_botones = Frame(window)
+frame_botones.pack(pady=10)
+
+# Botón para ejecutar todas las consultas y generar el PDF
+Button(frame_botones, text="Ejecutar todas las consultas y generar PDF", command=ejecutar_todas_consultas, bg="lightblue").pack(pady=10)
+
+window.mainloop()
+
+# Tabla para mostrar resultados
+"""
+frame_tabla = Frame(window)
+frame_tabla.pack(pady=1)
+
+tree = ttk.Treeview(frame_tabla, height=1)
+tree.pack()
+
+window.mainloop()
+"""
+
+
